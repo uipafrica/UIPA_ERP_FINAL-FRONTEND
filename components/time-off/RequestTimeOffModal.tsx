@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Calendar } from "lucide-react";
 import { leaveRequestApi, leaveTypeApi } from "@/lib/api";
+import { SupervisorSelector } from "./SupervisorSelector";
 
 interface RequestTimeOffModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface LeaveRequestFormData {
   startDate: string;
   endDate: string;
   reason: string;
+  supervisorId: string;
 }
 
 const initialFormData: LeaveRequestFormData = {
@@ -33,6 +35,7 @@ const initialFormData: LeaveRequestFormData = {
   startDate: "",
   endDate: "",
   reason: "",
+  supervisorId: "",
 };
 
 export const RequestTimeOffModal: React.FC<RequestTimeOffModalProps> = ({
@@ -70,9 +73,13 @@ export const RequestTimeOffModal: React.FC<RequestTimeOffModalProps> = ({
 
   const handleInputChange = (
     field: keyof LeaveRequestFormData,
-    value: string
+    value: string | undefined
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSupervisorChange = (supervisorId: string | undefined) => {
+    setFormData((prev) => ({ ...prev, supervisorId: supervisorId || "" }));
   };
 
   const calculateDays = (): number => {
@@ -107,6 +114,7 @@ export const RequestTimeOffModal: React.FC<RequestTimeOffModalProps> = ({
       startDate: formData.startDate,
       endDate: formData.endDate,
       reason: formData.reason,
+      supervisorId: formData.supervisorId,
     };
 
     createLeaveRequestMutation.mutate(submitData);
@@ -214,6 +222,19 @@ export const RequestTimeOffModal: React.FC<RequestTimeOffModalProps> = ({
                 </div>
               </div>
             )}
+
+            <div className="sm:col-span-2">
+              <Label>Supervisor</Label>
+              <SupervisorSelector
+                value={formData.supervisorId}
+                onChange={handleSupervisorChange}
+                disabled={createLeaveRequestMutation.isPending}
+              />
+              <div className="mt-1 text-xs text-muted-foreground">
+                Select a supervisor to approve your request. If not selected,
+                your direct manager will be used.
+              </div>
+            </div>
 
             <div className="sm:col-span-2">
               <Label htmlFor="reason">Reason *</Label>

@@ -60,6 +60,8 @@ async function apiRequest<T>(
     try {
         let response = await makeRequest();
 
+        // console.log("response", response);
+
         // Handle 401 errors with automatic token refresh
         if (response.status === 401 && !skipRetry && !endpoint.includes('/auth/')) {
             if (isRefreshing) {
@@ -107,6 +109,8 @@ async function apiRequest<T>(
         }
 
         const data = await response.json();
+
+        // console.log("data", data);
 
         if (!response.ok) {
             throw new ApiError(
@@ -209,6 +213,12 @@ export const employeeApi = {
         });
     },
 
+    getEligibleSupervisors: async () => {
+        return apiRequest<any[]>('/employees/eligible-supervisors', {
+            method: 'GET',
+        });
+    },
+
     getById: async (id: string, token?: string) => {
         return apiRequest<any>(`/employees/${id}`, {
             method: 'GET',
@@ -243,6 +253,25 @@ export const employeeApi = {
         return apiRequest<any>('/employees/create-with-user', {
             method: 'POST',
             body: employeeData,
+            token,
+        });
+    },
+
+    initializeLeaveBalances: async (employeeId: string, year?: number, token?: string) => {
+        return apiRequest<{
+            success: boolean;
+            message: string;
+            employee: {
+                id: string;
+                name: string;
+                email: string;
+                department: string;
+            };
+            balancesCreated: number;
+            year: number;
+        }>(`/employees/${employeeId}/initialize-leave-balances`, {
+            method: 'POST',
+            body: year ? { year } : {},
             token,
         });
     },
@@ -297,19 +326,22 @@ export const contactApi = {
 
 // Leave Requests API endpoints
 export const leaveRequestApi = {
-    getAll: async (params?: { status?: string; startDate?: string; endDate?: string; pending?: boolean }, token?: string) => {
+    getAll: async (params?: { status?: string; startDate?: string; endDate?: string; pending?: boolean, supervisorId?: string }) => {
         const searchParams = new URLSearchParams();
         if (params?.status) searchParams.set('status', params.status);
         if (params?.startDate) searchParams.set('startDate', params.startDate);
         if (params?.endDate) searchParams.set('endDate', params.endDate);
         if (params?.pending) searchParams.set('pending', 'true');
+        if (params?.supervisorId) searchParams.set('supervisorId', params.supervisorId);
+
+        console.log("this is the search params", searchParams);
 
         const queryString = searchParams.toString();
         const endpoint = queryString ? `/time-off/requests?${queryString}` : '/time-off/requests';
+        // console.log("endpoint", endpoint);
 
         return apiRequest<any[]>(endpoint, {
             method: 'GET',
-            token,
         });
     },
 
@@ -382,6 +414,52 @@ export const leaveBalanceApi = {
         return apiRequest<any[]>(`/time-off/balances/employee/${employeeId}`, {
             method: 'GET',
             token,
+        });
+    },
+};
+
+// Notification API endpoints
+export const notificationApi = {
+    getAll: async (params?: { page?: number; limit?: number; unreadOnly?: boolean; type?: string }) => {
+        const searchParams = new URLSearchParams();
+        if (params?.page) searchParams.set('page', params.page.toString());
+        if (params?.limit) searchParams.set('limit', params.limit.toString());
+        if (params?.unreadOnly) searchParams.set('unreadOnly', 'true');
+        if (params?.type) searchParams.set('type', params.type);
+
+        const queryString = searchParams.toString();
+        const endpoint = queryString ? `/notifications?${queryString}` : '/notifications';
+
+        return apiRequest<{
+            notifications: any[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                pages: number;
+            };
+            unreadCount: number;
+        }>(endpoint, {
+            method: 'GET',
+        });
+    },
+
+    getUnreadCount: async () => {
+        return apiRequest<{ unreadCount: number }>('/notifications/unread-count', {
+            method: 'GET',
+        });
+    },
+
+    markAsRead: async (data: { notificationIds?: string[]; markAll?: boolean }) => {
+        return apiRequest<{ success: boolean; modifiedCount: number; message: string }>('/notifications/mark-read', {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    delete: async (id: string) => {
+        return apiRequest<any>(`/notifications/${id}`, {
+            method: 'DELETE',
         });
     },
 };

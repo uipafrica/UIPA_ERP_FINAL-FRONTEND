@@ -85,7 +85,7 @@ const LeaveBalanceCard: React.FC<{ balance: any }> = ({ balance }) => {
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">
-            {balance.leaveType?.name || "Unknown Type"}
+            {balance.leaveTypeId?.name || "Unknown Type"}
           </h3>
           <div className="text-right">
             <div className="text-2xl font-bold text-primary">{remaining}</div>
@@ -127,6 +127,9 @@ export default function TimeOffPage() {
   const router = useRouter();
   const isAdmin = user?.role === "admin";
 
+  // Note: We don't need to manually read the access token since it's an HTTP-only cookie
+  // The API calls will automatically include it via credentials: 'include'
+
   // Fetch leave requests
   const {
     data: leaveRequests = [],
@@ -134,20 +137,24 @@ export default function TimeOffPage() {
     error: requestsError,
     refetch: refetchRequests,
   } = useQuery({
-    queryKey: ["leaveRequests", { myOnly: showMyRequestsOnly }],
+    queryKey: ["leaveRequests"],
     queryFn: () => {
-      // For regular employees, always show only their requests
-      // For admins/approvers, respect the filter toggle
-      const shouldShowMyOnly = user?.role === "employee" || showMyRequestsOnly;
-      return leaveRequestApi.getAll(
-        shouldShowMyOnly ? {} : undefined, // Empty object gets all, undefined gets user's own
-        localStorage.getItem("access_token") || undefined
-      );
+      // For regular employees, backend automatically filters to their requests
+      // For admins/approvers, we can control what they see with parameters
+      if (user?.role === "employee") {
+        // Employees always see only their own requests - no parameters needed
+        return leaveRequestApi.getAll(undefined);
+      } else {
+        // For admins/approvers, if showMyRequestsOnly is false, pass empty object to get all
+        // If showMyRequestsOnly is true, pass undefined to get only their own
+
+        return leaveRequestApi.getAll(undefined);
+      }
     },
     enabled: !!user,
   });
 
-  // console.log(leaveRequests);
+  console.log("leaveRequests", leaveRequests);
 
   // Fetch leave balances
   const {
@@ -157,8 +164,9 @@ export default function TimeOffPage() {
     refetch: refetchBalances,
   } = useQuery({
     queryKey: ["leaveBalances"],
-    queryFn: () =>
-      leaveBalanceApi.getMy(localStorage.getItem("access_token") || undefined),
+    queryFn: () => {
+      return leaveBalanceApi.getMy();
+    },
     enabled: !!user,
   });
 
@@ -170,8 +178,7 @@ export default function TimeOffPage() {
     refetch: refetchTypes,
   } = useQuery({
     queryKey: ["leaveTypes"],
-    queryFn: () =>
-      leaveTypeApi.getAll(localStorage.getItem("access_token") || undefined),
+    queryFn: () => leaveTypeApi.getAll(),
     enabled: !!user && isAdmin,
   });
 
@@ -182,7 +189,9 @@ export default function TimeOffPage() {
   };
 
   const canViewAllRequests =
-    user?.role === "admin" || user?.role === "approver";
+    user?.role === "admin" ||
+    user?.role === "approver" ||
+    user?.role === "employee";
 
   const handleViewLeaveDetails = (request: any) => {
     router.push(`/time-off/requests/${request._id || request.id}`);
@@ -208,6 +217,8 @@ export default function TimeOffPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  console.log("filteredLeaveRequests", filteredLeaveRequests);
 
   // Available status options
   // "submitted" | "approved_lvl1" | "approved_final" | "rejected" | "cancelled";

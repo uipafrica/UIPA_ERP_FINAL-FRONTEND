@@ -85,6 +85,7 @@ export interface LeaveRequest {
     days: number
     reason: string
     status: LeaveStatus
+    supervisorId?: string
     level1ApprovalBy?: string
     level1ApprovalDate?: string
     level1ApprovalNotes?: string
@@ -93,6 +94,7 @@ export interface LeaveRequest {
     level2ApprovalNotes?: string
     employee: Employee
     leaveType: LeaveType
+    supervisor?: Employee
     createdAt: string
     updatedAt: string
 }
@@ -145,6 +147,24 @@ export interface Document {
 }
 
 export type DocumentCategory = "policy" | "procedure" | "form" | "report" | "contract" | "other"
+
+export interface Notification {
+    id: string
+    recipientId: string
+    senderId?: string
+    type: "leave_request_submitted" | "leave_request_approved" | "leave_request_rejected" | "leave_request_cancelled" | "general"
+    title: string
+    message: string
+    relatedEntityType?: "LeaveRequest" | "Employee" | "Document"
+    relatedEntityId?: string
+    isRead: boolean
+    priority: "low" | "medium" | "high"
+    actionUrl?: string
+    metadata?: Record<string, any>
+    expiresAt?: string
+    createdAt: string
+    updatedAt: string
+}
 
 export interface Vehicle {
     id: string

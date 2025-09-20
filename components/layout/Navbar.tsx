@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTheme } from "next-themes";
-import { Bell, Moon, Sun, User, Settings, LogOut } from "lucide-react";
+import { Moon, Sun, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { getInitials } from "@/lib/utils";
+import { NotificationBell } from "./NotificationBell";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -69,12 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] text-destructive-foreground flex items-center justify-center">
-              3
-            </span>
-          </Button>
+          <NotificationBell />
 
           {/* Profile Dropdown */}
           <DropdownMenu>
