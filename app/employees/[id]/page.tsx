@@ -27,13 +27,22 @@ import {
   Loader2,
   AlertCircle,
   Trash2,
+  Shield,
+  Key,
+  Settings,
+  Upload,
+  XCircle,
 } from "lucide-react";
 import { Employee } from "@/types";
 import { getInitials } from "@/lib/utils";
-import { employeeApi } from "@/lib/api";
+import { employeeApi, userApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { EditEmployeeModal } from "@/components/employees/EditEmployeeModal";
 import { DeleteConfirmationDialog } from "@/components/employees/DeleteConfirmationDialog";
+import { EditUserModal } from "@/components/employees/EditUserModal";
+import { ResetPasswordModal } from "@/components/employees/ResetPasswordModal";
+import { UploadDocumentModal } from "@/components/employees/UploadDocumentModal";
+import { DeleteDocumentModal } from "@/components/employees/DeleteDocumentModal";
 
 export default function EmployeeDetailPage() {
   const router = useRouter();
@@ -42,6 +51,17 @@ export default function EmployeeDetailPage() {
   const employeeId = params.id as string;
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
+  const [showDeleteDocumentModal, setShowDeleteDocumentModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{
+    type: "idCard" | "resume" | "contract" | "certificate";
+    index?: number;
+    name?: string;
+  } | null>(null);
+
+  const isAdmin = user?.role === "admin";
 
   // Fetch employee details
   const {
@@ -57,6 +77,21 @@ export default function EmployeeDetailPage() {
         localStorage.getItem("access_token") || undefined
       ),
     enabled: !!user && !!employeeId,
+  });
+
+  // Fetch user data for admin users
+  const {
+    data: userData,
+    isLoading: userLoading,
+    error: userError,
+  } = useQuery({
+    queryKey: ["user", "employee", employeeId],
+    queryFn: () =>
+      userApi.getByEmployeeId(
+        employeeId,
+        localStorage.getItem("access_token") || undefined
+      ),
+    enabled: !!user && !!employeeId && isAdmin,
   });
 
   const handleBack = () => {
@@ -75,7 +110,24 @@ export default function EmployeeDetailPage() {
     router.push("/employees");
   };
 
-  const isAdmin = user?.role === "admin";
+  // Helper function to get full document URL
+  const getDocumentUrl = (relativeUrl: string) => {
+    // Extract filename from the relative URL
+    const filename = relativeUrl.split("/").pop();
+    if (!filename) return relativeUrl;
+
+    return employeeApi.getDocumentUrl(filename);
+  };
+
+  // Handler for deleting documents
+  const handleDeleteDocument = (
+    type: "idCard" | "resume" | "contract" | "certificate",
+    index?: number,
+    name?: string
+  ) => {
+    setDocumentToDelete({ type, index, name });
+    setShowDeleteDocumentModal(true);
+  };
 
   if (isLoading) {
     return (
@@ -286,7 +338,7 @@ export default function EmployeeDetailPage() {
                   </div>
                 )}
 
-                {employee.salary && (
+                {/* {employee.salary && (
                   <div className="flex items-center space-x-3">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <div>
@@ -296,79 +348,339 @@ export default function EmployeeDetailPage() {
                       </p>
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
             </CardContent>
           </Card>
 
-          {/* Documents */}
-          {employee.documents && (
+          {/* User Account Information - Admin Only */}
+          {isAdmin && userData && (
             <Card className="md:col-span-3">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2" />
-                  Documents
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Shield className="h-5 w-5 mr-2" />
+                    User Account Information
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowEditUserModal(true)}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Edit User
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowResetPasswordModal(true)}
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Reset Password
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {employee.documents.idCardUrl && (
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm font-medium mb-2">ID Card</p>
-                      <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={employee.documents.idCardUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Document
-                        </a>
-                      </Button>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Account Email</p>
+                      <p className="text-sm text-muted-foreground">
+                        {userData.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Role</p>
+                      <p className="text-sm text-muted-foreground capitalize">
+                        {userData.role}
+                      </p>
+                    </div>
+                  </div>
+
+                  {userData.attributes?.department && (
+                    <div className="flex items-center space-x-3">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">User Department</p>
+                        <p className="text-sm text-muted-foreground">
+                          {userData.attributes.department}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {employee.documents.resumeUrl && (
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm font-medium mb-2">Resume</p>
-                      <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={employee.documents.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Document
-                        </a>
-                      </Button>
+                  {userData.attributes?.employee_id && (
+                    <div className="flex items-center space-x-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Employee ID</p>
+                        <p className="text-sm text-muted-foreground">
+                          {userData.attributes.employee_id}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {employee.documents.certificates &&
-                    employee.documents.certificates.length > 0 && (
+                  {userData.attributes?.approval_level && (
+                    <div className="flex items-center space-x-3">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Approval Level</p>
+                        <p className="text-sm text-muted-foreground">
+                          {userData.attributes.approval_level === "level1"
+                            ? "Level 1 (Supervisor)"
+                            : userData.attributes.approval_level === "level2"
+                            ? "Level 2 (Manager)"
+                            : userData.attributes.approval_level}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-3">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Account Created</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(userData.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Last Updated</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(userData.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* User Data Loading/Error States - Admin Only */}
+          {isAdmin && userLoading && (
+            <Card className="md:col-span-3">
+              <CardContent className="py-8">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                  <span className="text-muted-foreground">
+                    Loading user account information...
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAdmin && userError && !userData && (
+            <Card className="md:col-span-3">
+              <CardContent className="py-8">
+                <div className="flex items-center justify-center text-muted-foreground">
+                  <AlertCircle className="h-6 w-6 mr-2" />
+                  <span>No user account found for this employee</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Documents - Admin Only */}
+          {isAdmin && (
+            <Card className="md:col-span-3">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Documents
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUploadDocumentModal(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Document
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {employee.documents &&
+                Object.keys(employee.documents).some(
+                  (key) =>
+                    (key === "idCardUrl" && employee.documents[key]) ||
+                    (key === "resumeUrl" && employee.documents[key]) ||
+                    (key === "contracts" &&
+                      employee.documents[key]?.length > 0) ||
+                    (key === "certificates" &&
+                      employee.documents[key]?.length > 0)
+                ) ? (
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {employee.documents.idCardUrl && (
                       <div className="p-4 border rounded-lg">
-                        <p className="text-sm font-medium mb-2">Certificates</p>
-                        <div className="space-y-2">
-                          {employee.documents.certificates.map(
-                            (cert, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                size="sm"
-                                asChild
-                              >
-                                <a
-                                  href={cert}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  Certificate {index + 1}
-                                </a>
-                              </Button>
-                            )
-                          )}
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium">ID Card</p>
+                          <button
+                            onClick={() => handleDeleteDocument("idCard")}
+                            className="text-destructive hover:text-destructive/80 transition-colors"
+                            title="Delete ID Card"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
                         </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={getDocumentUrl(employee.documents.idCardUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Document
+                          </a>
+                        </Button>
                       </div>
                     )}
-                </div>
+
+                    {employee.documents.resumeUrl && (
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium">Resume</p>
+                          <button
+                            onClick={() => handleDeleteDocument("resume")}
+                            className="text-destructive hover:text-destructive/80 transition-colors"
+                            title="Delete Resume"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={getDocumentUrl(employee.documents.resumeUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Document
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+
+                    {employee.documents.contracts &&
+                      employee.documents.contracts.length > 0 && (
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm font-medium mb-2">Contracts</p>
+                          <div className="space-y-2">
+                            {employee.documents.contracts.map(
+                              (
+                                contract: { name: string; url: string },
+                                index: number
+                              ) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between p-2 border rounded"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="flex-1 mr-2"
+                                  >
+                                    <a
+                                      href={getDocumentUrl(contract.url)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {contract.name}
+                                    </a>
+                                  </Button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteDocument(
+                                        "contract",
+                                        index,
+                                        contract.name
+                                      )
+                                    }
+                                    className="text-destructive hover:text-destructive/80 transition-colors"
+                                    title={`Delete ${contract.name}`}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {employee.documents.certificates &&
+                      employee.documents.certificates.length > 0 && (
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm font-medium mb-2">
+                            Certificates
+                          </p>
+                          <div className="space-y-2">
+                            {employee.documents.certificates.map(
+                              (
+                                cert: { name: string; url: string },
+                                index: number
+                              ) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between p-2 border rounded"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="flex-1 mr-2"
+                                  >
+                                    <a
+                                      href={getDocumentUrl(cert.url)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {cert.name}
+                                    </a>
+                                  </Button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteDocument(
+                                        "certificate",
+                                        index,
+                                        cert.name
+                                      )
+                                    }
+                                    className="text-destructive hover:text-destructive/80 transition-colors"
+                                    title={`Delete ${cert.name}`}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">
+                      No documents uploaded
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Click "Upload Document" to add employee documents
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -413,6 +725,45 @@ export default function EmployeeDetailPage() {
           employee={employee}
           onDeleted={handleDeleteSuccess}
         />
+
+        {/* User Management Modals - Admin Only */}
+        {isAdmin && employee && userData && (
+          <>
+            <EditUserModal
+              open={showEditUserModal}
+              onOpenChange={setShowEditUserModal}
+              employee={employee}
+              userData={userData}
+            />
+
+            <ResetPasswordModal
+              open={showResetPasswordModal}
+              onOpenChange={setShowResetPasswordModal}
+              employee={employee}
+            />
+          </>
+        )}
+
+        {/* Document Upload Modal - Admin Only */}
+        {isAdmin && (
+          <UploadDocumentModal
+            open={showUploadDocumentModal}
+            onOpenChange={setShowUploadDocumentModal}
+            employee={employee}
+          />
+        )}
+
+        {/* Document Delete Modal - Admin Only */}
+        {isAdmin && documentToDelete && (
+          <DeleteDocumentModal
+            open={showDeleteDocumentModal}
+            onOpenChange={setShowDeleteDocumentModal}
+            employee={employee}
+            documentType={documentToDelete.type}
+            documentIndex={documentToDelete.index}
+            documentName={documentToDelete.name}
+          />
+        )}
       </div>
     </AppShell>
   );

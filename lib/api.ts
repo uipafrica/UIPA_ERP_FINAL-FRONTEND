@@ -275,6 +275,50 @@ export const employeeApi = {
             token,
         });
     },
+
+    // Employee Document Management
+    uploadDocument: async (employeeId: string, file: File, documentType: string, documentName?: string, token?: string) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('documentType', documentType);
+        if (documentName) {
+            formData.append('documentName', documentName);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/documents/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+            },
+            body: formData,
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new ApiError(
+                errorData.error || 'Upload failed',
+                response.status,
+                errorData
+            );
+        }
+
+        return response.json();
+    },
+
+    deleteDocument: async (employeeId: string, documentType: string, documentIndex?: number, token?: string) => {
+        return apiRequest<any>(`/employees/${employeeId}/documents`, {
+            method: 'DELETE',
+            body: { documentType, documentIndex },
+            token,
+        });
+    },
+
+    // Get document URL with authentication
+    getDocumentUrl: (filename: string) => {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        return `${API_BASE_URL}/uploads/documents/${filename}`;
+    },
 };
 
 // Contact API endpoints
@@ -460,6 +504,32 @@ export const notificationApi = {
     delete: async (id: string) => {
         return apiRequest<any>(`/notifications/${id}`, {
             method: 'DELETE',
+        });
+    },
+};
+
+// User management API
+export const userApi = {
+    getByEmployeeId: async (employeeId: string, token?: string) => {
+        return apiRequest<any>(`/users/employee/${employeeId}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    updateByEmployeeId: async (employeeId: string, data: any, token?: string) => {
+        return apiRequest<any>(`/users/employee/${employeeId}`, {
+            method: 'PUT',
+            body: data,
+            token,
+        });
+    },
+
+    resetPasswordByEmployeeId: async (employeeId: string, newPassword: string, token?: string) => {
+        return apiRequest<{ message: string }>(`/users/employee/${employeeId}/reset-password`, {
+            method: 'POST',
+            body: { newPassword },
+            token,
         });
     },
 };
