@@ -10,6 +10,8 @@ import {
   Car,
   Calendar,
   FileText,
+  ShieldCheck,
+  Bot,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,12 +50,24 @@ const navItems: NavItem[] = [
     icon: Phone,
     roles: ["employee", "approver", "admin"],
   },
-  // {
-  //   title: "Fleet",
-  //   href: "/fleet",
-  //   icon: Car,
-  //   roles: ["approver", "admin"],
-  // },
+  {
+    title: "QMS",
+    href: "/qms",
+    icon: ShieldCheck,
+    roles: ["employee", "approver", "admin"],
+  },
+  {
+    title: "AI Chat",
+    href: "/ai-chat",
+    icon: Bot,
+    roles: ["employee", "approver", "admin"],
+  },
+  {
+    title: "Fleet",
+    href: "/fleet",
+    icon: Car,
+    roles: ["approver", "admin"],
+  },
   {
     title: "Time Off",
     href: "/time-off",

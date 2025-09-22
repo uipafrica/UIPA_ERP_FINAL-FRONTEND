@@ -414,7 +414,7 @@ export const leaveRequestApi = {
 
     cancel: async (id: string, token?: string) => {
         return apiRequest<any>(`/time-off/requests/${id}/cancel`, {
-            method: 'POST',
+            method: 'DELETE',
             token,
         });
     },

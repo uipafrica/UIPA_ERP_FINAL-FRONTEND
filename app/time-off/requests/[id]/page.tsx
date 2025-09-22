@@ -31,6 +31,14 @@ import { leaveRequestApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import { ApprovalModal } from "@/components/time-off/ApprovalModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const getStatusIcon = (status: LeaveStatus) => {
   switch (status) {
@@ -72,6 +80,8 @@ export default function LeaveRequestDetailPage() {
   const { user } = useAuth();
   const requestId = params.id as string;
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Fetch leave request details
   const {
@@ -88,6 +98,9 @@ export default function LeaveRequestDetailPage() {
       ),
     enabled: !!user && !!requestId,
   });
+
+  console.log("leaveRequest", leaveRequest);
+  console.log("user", user);
 
   const handleBack = () => {
     router.back();
@@ -126,6 +139,36 @@ export default function LeaveRequestDetailPage() {
       return "Level 2 Approve";
     }
     return "Review";
+  };
+
+  const isOwner = () => {
+    if (!user || !leaveRequest) return false;
+    const empField = (leaveRequest as any).employeeId;
+    const requestUserId =
+      typeof empField === "string" ? empField : empField?._id;
+    return requestUserId === user.id;
+  };
+
+  const handleCancel = () => {
+    if (!leaveRequest || !isOwner()) return;
+    setCancelOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!leaveRequest || !isOwner()) return;
+    try {
+      setIsCancelling(true);
+      await leaveRequestApi.cancel(
+        (leaveRequest as any)._id || (leaveRequest as any).id,
+        localStorage.getItem("access_token") || undefined
+      );
+      setCancelOpen(false);
+      router.push("/time-off");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   if (isLoading) {
@@ -231,6 +274,13 @@ export default function LeaveRequestDetailPage() {
               <Button onClick={handleApproval}>
                 <CheckCircle className="h-4 w-4 mr-2" />
                 {getApprovalButtonText()}
+              </Button>
+            )}
+
+            {isOwner() && (
+              <Button variant="destructive" onClick={handleCancel}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Cancel Leave
               </Button>
             )}
           </div>
@@ -404,6 +454,42 @@ export default function LeaveRequestDetailPage() {
           leaveRequest={leaveRequest}
           userRole={user?.role || ""}
         />
+
+        {/* Cancel Confirmation Modal */}
+        <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel leave request?</DialogTitle>
+              <DialogDescription>
+                This will delete the leave request permanently. This action
+                cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCancelOpen(false)}
+                disabled={isCancelling}
+              >
+                Keep Request
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+              >
+                {isCancelling ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </span>
+                ) : (
+                  "Cancel Request"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );
