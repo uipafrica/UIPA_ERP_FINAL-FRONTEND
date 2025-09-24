@@ -44,7 +44,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Check if we have access token cookie by making a test API call
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/health"}`,
+        `${
+          process.env.NEXT_PUBLIC_API_URL_health ||
+          "http://localhost:4000/health"
+        }`,
         {
           method: "GET",
           credentials: "include", // Include cookies
