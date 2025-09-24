@@ -30,6 +30,7 @@ import {
   notificationApi,
 } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data for dashboard stats
 const mockStats = {
@@ -77,6 +78,31 @@ const StatCard: React.FC<{
   );
 };
 
+const LeaveBalanceCard = (leaveBalance: any) => {
+  console.log("leaveBalance from the leave balance card", leaveBalance);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Leave Balance</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {/* this is an array of the leave balances */}
+          {leaveBalance?.leaveBalance?.map((balance: any) => (
+            <div key={balance._id}>
+              {/* <Badge>{balance.leaveTypeId.name}</Badge> */}
+              <Badge className="bg-primary text-xs text-primary-foreground">
+                {balance.leaveTypeId.name}: {balance.remaining}
+              </Badge>
+            </div>
+          ))}
+          {/* {leaveBalance.leaveBalance?.length} */}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const EmployeeDashboard: React.FC = () => {
   const router = useRouter();
   // fetch the leave balance from the api
@@ -86,8 +112,10 @@ const EmployeeDashboard: React.FC = () => {
       leaveBalanceApi.getMy(localStorage.getItem("access_token") || undefined),
   });
 
+  console.log("leaveBalance", leaveBalance);
+
   const user = useAuth();
-  console.log("user", user);
+  // console.log("user", user);
 
   // fetch my leave requests from the api
   const { data: leaveRequests } = useQuery({
@@ -118,13 +146,15 @@ const EmployeeDashboard: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-">
+        {/* <StatCard
           title="My Leave Balance"
           value={leaveBalance?.length || 0}
           icon={Calendar}
           description="Days remaining this year"
-        />
+        /> */}
+
+        <LeaveBalanceCard leaveBalance={leaveBalance} />
         <StatCard
           title="Pending Requests"
           value={myLeaveRequestPending?.length || 0}
@@ -132,12 +162,12 @@ const EmployeeDashboard: React.FC = () => {
           description="Awaiting approval"
           variant="warning"
         />
-        <StatCard
+        {/* <StatCard
           title="Team Documents"
           value={12}
           icon={FileText}
           description="Shared with you"
-        />
+        /> */}
         {/* <StatCard
         title="Quick Actions"
         value={4}
@@ -316,11 +346,16 @@ const AdminDashboard: React.FC = () => {
               emp._id,
               token
             );
-            // Sum remaining across leave types, being defensive on field names
+            // Sum remaining across leave types, excluding pending:
+            // remainingAvailable = allocated + carryOver - used
             const remainingDays = (balances || []).reduce(
               (sum: number, b: any) => {
-                const r = b.remainingDays ?? b.remaining ?? 0;
-                return sum + (typeof r === "number" ? r : 0);
+                const allocated =
+                  typeof b.allocated === "number" ? b.allocated : 0;
+                const carryOver =
+                  typeof b.carryOver === "number" ? b.carryOver : 0;
+                const used = typeof b.used === "number" ? b.used : 0;
+                return sum + (allocated + carryOver - used);
               },
               0
             );
@@ -399,6 +434,79 @@ const AdminDashboard: React.FC = () => {
     }).length;
   }, [approvedRequests]);
 
+  console.log("approvedDates", approvedDates);
+
+  // Employees on leave today (based on approved requests)
+  const employeesOnLeaveToday = React.useMemo(() => {
+    if (!approvedRequests || !employees)
+      return [] as {
+        id: string;
+        name: string;
+        department?: string;
+        daysTaken: number;
+      }[];
+
+    const startOfDay = (date: Date) => {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+
+    const today = startOfDay(new Date());
+
+    const byId = new Map<string, any>();
+    (employees as any[]).forEach((e) => byId.set(e._id, e));
+
+    const resultMap = new Map<
+      string,
+      { id: string; name: string; department?: string; daysTaken: number }
+    >();
+
+    (approvedRequests as any[]).forEach((req) => {
+      if (!req.startDate || !req.endDate) return;
+      const start = startOfDay(new Date(req.startDate));
+      const end = startOfDay(new Date(req.endDate));
+      if (today >= start && today <= end) {
+        const empId = req.employeeId?._id || req.employee?._id;
+        const empName =
+          req.employeeId?.name ||
+          req.employee?.name ||
+          byId.get(empId)?.name ||
+          "Unknown";
+        const dept = byId.get(empId)?.department;
+        // Determine total days for this approved request; fallback to inclusive diff
+        const requestDays =
+          typeof req.totalDays === "number" && !isNaN(req.totalDays)
+            ? req.totalDays
+            : typeof req.days === "number" && !isNaN(req.days)
+            ? req.days
+            : Math.max(
+                1,
+                Math.round(
+                  (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+                ) + 1
+              );
+
+        if (empId) {
+          const existing = resultMap.get(empId);
+          if (existing) {
+            // Sum if multiple overlapping approved requests exist (edge case)
+            existing.daysTaken += requestDays;
+          } else {
+            resultMap.set(empId, {
+              id: empId,
+              name: empName,
+              department: dept,
+              daysTaken: requestDays,
+            });
+          }
+        }
+      }
+    });
+
+    return Array.from(resultMap.values());
+  }, [approvedRequests, employees]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -451,14 +559,33 @@ const AdminDashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>On Leave Today</CardTitle>
-            <CardDescription>Approved leaves for the day</CardDescription>
+            <CardTitle>On Leave </CardTitle>
+            {/* <CardDescription>Approved leaves for the day</CardDescription> */}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {approvedDates.includes(new Date().toISOString().split("T")[0])
-                ? "Yes"
-                : "No"}
+            <div className="space-y-2">
+              {employeesOnLeaveToday.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No employees are on leave today.
+                </p>
+              ) : (
+                employeesOnLeaveToday.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center justify-between border rounded-md px-3 py-2"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{e.name}</span>
+                      {/* <span className="text-xs text-muted-foreground">
+                        {e.department || "-"}
+                      </span> */}
+                    </div>
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      {e.daysTaken} {e.daysTaken === 1 ? "day" : "days"}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

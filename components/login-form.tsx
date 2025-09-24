@@ -66,7 +66,9 @@ export function LoginForm({
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="flex justify-center mb-4">
           <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">U</span>
+            <span className="text-primary-foreground font-bold text-LG">
+              UIPA
+            </span>
           </div>
         </div>
         <h1 className="text-2xl font-bold">Welcome Back</h1>
@@ -112,7 +114,7 @@ export function LoginForm({
         </Button>
       </div>
       <div className="text-center text-sm">
-        <p className="text-muted-foreground mb-2">Demo credentials:</p>
+        {/* <p className="text-muted-foreground mb-2">Demo credentials:</p>
         <div className="text-xs text-muted-foreground space-y-1">
           <p>
             <strong>Employee:</strong> employee@uip.test / secret123
@@ -123,7 +125,7 @@ export function LoginForm({
           <p>
             <strong>Admin:</strong> admin@uip.test / secret123
           </p>
-        </div>
+        </div> */}
       </div>
     </form>
   );
