@@ -32,7 +32,7 @@ interface EmployeeFormData {
   role: "employee" | "approver" | "admin";
   contractType: string;
   manager: string;
-  salary: string;
+  // salary: number;
 }
 
 const initialFormData: EmployeeFormData = {
@@ -45,7 +45,7 @@ const initialFormData: EmployeeFormData = {
   role: "employee",
   contractType: "full_time",
   manager: "",
-  salary: "",
+  // salary: "0",
 };
 
 export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
@@ -89,7 +89,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       position: formData.position || undefined,
       contractType: formData.contractType || undefined,
       manager: formData.manager || undefined,
-      salary: formData.salary ? parseFloat(formData.salary) : undefined,
+      // salary: formData.salary ? parseFloat(formData.salary) : 0,
       hireDate: new Date().toISOString(),
     };
 
@@ -240,7 +240,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
               />
             </div>
 
-            <div>
+            {/* <div>
               <Label htmlFor="salary">Salary</Label>
               <Input
                 id="salary"
@@ -251,7 +251,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 placeholder="0.00"
                 step="0.01"
               />
-            </div>
+            </div> */}
           </div>
 
           {createEmployeeMutation.error && (

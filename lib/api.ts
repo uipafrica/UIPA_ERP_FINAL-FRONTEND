@@ -426,6 +426,13 @@ export const leaveRequestApi = {
             token,
         });
     },
+
+    undoFinal: async (id: string, token?: string) => {
+        return apiRequest<any>(`/time-off/requests/${id}/undo-final`, {
+            method: 'POST',
+            token,
+        });
+    },
 };
 
 // Leave Types API endpoints

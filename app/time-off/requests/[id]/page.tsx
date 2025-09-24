@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Loader2,
   Building2,
+  RotateCcw,
 } from "lucide-react";
 import { LeaveStatus } from "@/types";
 import { formatDate, getInitials } from "@/lib/utils";
@@ -82,6 +83,7 @@ export default function LeaveRequestDetailPage() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
 
   // Fetch leave request details
   const {
@@ -99,8 +101,8 @@ export default function LeaveRequestDetailPage() {
     enabled: !!user && !!requestId,
   });
 
-  console.log("leaveRequest", leaveRequest);
-  console.log("user", user);
+  // console.log("leaveRequest", leaveRequest);
+  // console.log("user", user);
 
   const handleBack = () => {
     router.back();
@@ -119,7 +121,9 @@ export default function LeaveRequestDetailPage() {
 
     // Can't approve own requests
     const requestUserId =
-      leaveRequest.employeeId?.userId || leaveRequest.employee?.userId;
+      leaveRequest.employeeId?._id ||
+      leaveRequest.employeeId ||
+      leaveRequest.employee?.userId;
     if (requestUserId === user.id) return false;
 
     // Only pending/submitted requests can be approved
@@ -130,6 +134,30 @@ export default function LeaveRequestDetailPage() {
       return false;
 
     return true;
+  };
+
+  const canUndoFinal = () => {
+    // console.log();
+    if (!user || !leaveRequest) return false;
+    return user.role === "admin" && leaveRequest.status === "approved_final";
+  };
+
+  // console.log(canUndoFinal());
+
+  const handleUndoFinal = async () => {
+    if (!leaveRequest) return;
+    try {
+      setIsUndoing(true);
+      await leaveRequestApi.undoFinal(
+        (leaveRequest as any)._id || (leaveRequest as any).id,
+        localStorage.getItem("access_token") || undefined
+      );
+      await refetch();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsUndoing(false);
+    }
   };
 
   const getApprovalButtonText = () => {
@@ -274,6 +302,26 @@ export default function LeaveRequestDetailPage() {
               <Button onClick={handleApproval}>
                 <CheckCircle className="h-4 w-4 mr-2" />
                 {getApprovalButtonText()}
+              </Button>
+            )}
+
+            {canUndoFinal() && (
+              <Button
+                variant="outline"
+                onClick={handleUndoFinal}
+                disabled={isUndoing}
+              >
+                {isUndoing ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Undoing...
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Undo Final Approval
+                  </span>
+                )}
               </Button>
             )}
 
