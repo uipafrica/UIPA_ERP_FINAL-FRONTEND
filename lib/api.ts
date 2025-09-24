@@ -1,5 +1,5 @@
 // API configuration and base client
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_ORIGIN || '';
 
 export class ApiError extends Error {
     constructor(
