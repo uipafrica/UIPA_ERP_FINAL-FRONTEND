@@ -1,5 +1,9 @@
 // API configuration and base client
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_ORIGIN || '';
+// Use full origin only on the server. In the browser, use relative paths so
+// Set-Cookie headers apply to the frontend domain and middleware can read them.
+const API_BASE_URL = typeof window === 'undefined'
+    ? (process.env.NEXT_PUBLIC_BACKEND_ORIGIN || '')
+    : '';
 
 export class ApiError extends Error {
     constructor(
