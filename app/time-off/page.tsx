@@ -674,7 +674,7 @@ export default function TimeOffPage() {
                                 </TableCell>
                                 <TableCell>
                                   <span className="font-medium">
-                                    {type.maxDays} days
+                                    {type?.defaultDays} days
                                   </span>
                                 </TableCell>
                                 <TableCell>
