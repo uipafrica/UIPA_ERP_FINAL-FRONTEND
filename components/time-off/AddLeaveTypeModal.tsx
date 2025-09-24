@@ -24,14 +24,14 @@ interface AddLeaveTypeModalProps {
 interface LeaveTypeFormData {
   name: string;
   description: string;
-  maxDays: string;
+  maxDays: number;
   carryOver: boolean;
 }
 
 const initialFormData: LeaveTypeFormData = {
   name: "",
   description: "",
-  maxDays: "",
+  maxDays: 0,
   carryOver: false,
 };
 
@@ -61,7 +61,7 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
 
   const handleInputChange = (
     field: keyof LeaveTypeFormData,
-    value: string | boolean
+    value: string | boolean | number
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -71,10 +71,11 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
 
     const submitData = {
       name: formData.name,
-      description: formData.description || undefined,
-      maxDays: parseInt(formData.maxDays),
-      carryOver: formData.carryOver,
-      isActive: true,
+      // Backend expects `defaultDays` (number)
+      defaultDays: Number(formData.maxDays) || 0,
+      // Optional fields per backend schema (send only if needed)
+      // carryOverRules, maxConsecutiveDays, eligibility
+      requiresApproval: true,
     };
 
     createLeaveTypeMutation.mutate(submitData);
@@ -112,34 +113,22 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
-                disabled={createLeaveTypeMutation.isPending}
-                placeholder="Optional description of this leave type..."
-                rows={3}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="maxDays">Maximum Days *</Label>
+              <Label htmlFor="maxDays">Default Days *</Label>
               <Input
                 id="maxDays"
                 type="number"
                 value={formData.maxDays}
-                onChange={(e) => handleInputChange("maxDays", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("maxDays", parseInt(e.target.value || "0"))
+                }
                 required
                 disabled={createLeaveTypeMutation.isPending}
                 placeholder="25"
-                min="1"
+                min="0"
               />
             </div>
 
+            {/* carryOver kept for UI but not sent unless you add carryOverRules semantics */}
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
