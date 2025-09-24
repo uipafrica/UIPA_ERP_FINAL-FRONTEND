@@ -1,5 +1,5 @@
 // API configuration and base client
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export class ApiError extends Error {
     constructor(
@@ -54,40 +54,32 @@ async function apiRequest<T>(
             config.body = JSON.stringify(body);
         }
 
-        return fetch(`${API_BASE_URL}${endpoint}`, config);
+        return fetch(`${API_BASE_URL}/api${endpoint}`, config);
     };
 
     try {
         let response = await makeRequest();
 
-        // console.log("response", response);
-
         // Handle 401 errors with automatic token refresh
         if (response.status === 401 && !skipRetry && !endpoint.includes('/auth/')) {
             if (isRefreshing) {
-                // If refresh is already in progress, wait for it
                 await new Promise<void>((resolve) => {
                     requestQueue.push(resolve);
                 });
-                // Retry the original request
                 response = await makeRequest();
             } else {
-                // Start token refresh
                 isRefreshing = true;
                 refreshPromise = refreshTokens();
 
                 try {
                     const refreshSuccess = await refreshPromise;
                     if (refreshSuccess) {
-                        // Retry the original request
                         response = await makeRequest();
                     } else {
-                        // Refresh failed, redirect to login
                         window.location.href = '/login';
                         throw new ApiError('Session expired', 401);
                     }
                 } finally {
-                    // Reset refresh state and resolve queued requests
                     isRefreshing = false;
                     refreshPromise = null;
                     requestQueue.forEach(resolve => resolve());
@@ -96,7 +88,6 @@ async function apiRequest<T>(
             }
         }
 
-        // Handle non-JSON responses
         const contentType = response.headers.get('content-type');
         if (!contentType?.includes('application/json')) {
             if (!response.ok) {
@@ -105,12 +96,10 @@ async function apiRequest<T>(
                     response.status
                 );
             }
-            return {} as T; // Return empty object for non-JSON success responses
+            return {} as T;
         }
 
         const data = await response.json();
-
-        // console.log("data", data);
 
         if (!response.ok) {
             throw new ApiError(
@@ -126,7 +115,6 @@ async function apiRequest<T>(
             throw error;
         }
 
-        // Network or other errors
         throw new ApiError(
             error instanceof Error ? error.message : 'Network error occurred',
             0
@@ -137,7 +125,7 @@ async function apiRequest<T>(
 // Token refresh function
 async function refreshTokens(): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -162,10 +150,10 @@ export const authApi = {
                 email: string;
                 role: string;
             };
-        }>('/auth/login', {
+        }>(`/auth/login`, {
             method: 'POST',
             body: { email, password },
-            skipRetry: true, // Don't auto-retry auth endpoints
+            skipRetry: true,
         });
     },
 
@@ -175,7 +163,7 @@ export const authApi = {
             email: string;
             role: string;
             attributes: any;
-        }>('/auth/register', {
+        }>(`/auth/register`, {
             method: 'POST',
             body: { email, password, role },
             skipRetry: true,
@@ -185,7 +173,7 @@ export const authApi = {
     refresh: async (refreshToken?: string) => {
         return apiRequest<{
             success: boolean;
-        }>('/auth/refresh', {
+        }>(`/auth/refresh`, {
             method: 'POST',
             body: refreshToken ? { refreshToken } : {},
             skipRetry: true,
@@ -196,7 +184,7 @@ export const authApi = {
         return apiRequest<{
             success: boolean;
             message: string;
-        }>('/auth/logout', {
+        }>(`/auth/logout`, {
             method: 'POST',
             body: {},
             skipRetry: true,
@@ -204,17 +192,19 @@ export const authApi = {
     },
 };
 
-// Employee API endpoints
+// The rest of endpoints already use '/time-off', '/contacts', etc., which now resolve under '/api'
+// No further changes needed because apiRequest prefixes with '/api'
+
 export const employeeApi = {
     getAll: async (token?: string) => {
-        return apiRequest<any[]>('/employees', {
+        return apiRequest<any[]>(`/employees`, {
             method: 'GET',
             token,
         });
     },
 
     getEligibleSupervisors: async () => {
-        return apiRequest<any[]>('/employees/eligible-supervisors', {
+        return apiRequest<any[]>(`/employees/eligible-supervisors`, {
             method: 'GET',
         });
     },
@@ -227,7 +217,7 @@ export const employeeApi = {
     },
 
     create: async (employeeData: any, token?: string) => {
-        return apiRequest<any>('/employees', {
+        return apiRequest<any>(`/employees`, {
             method: 'POST',
             body: employeeData,
             token,
@@ -250,7 +240,7 @@ export const employeeApi = {
     },
 
     createWithUser: async (employeeData: any, token?: string) => {
-        return apiRequest<any>('/employees/create-with-user', {
+        return apiRequest<any>(`/employees/create-with-user`, {
             method: 'POST',
             body: employeeData,
             token,
@@ -276,7 +266,6 @@ export const employeeApi = {
         });
     },
 
-    // Employee Document Management
     uploadDocument: async (employeeId: string, file: File, documentType: string, documentName?: string, token?: string) => {
         const formData = new FormData();
         formData.append('document', file);
@@ -285,7 +274,7 @@ export const employeeApi = {
             formData.append('documentName', documentName);
         }
 
-        const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/documents/upload`, {
+        const response = await fetch(`${API_BASE_URL}/api/employees/${employeeId}/documents/upload`, {
             method: 'POST',
             headers: {
                 'Authorization': token ? `Bearer ${token}` : '',
@@ -314,14 +303,11 @@ export const employeeApi = {
         });
     },
 
-    // Get document URL with authentication
     getDocumentUrl: (filename: string) => {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-        return `${API_BASE_URL}/uploads/documents/${filename}`;
+        return `/api/uploads/documents/${filename}`;
     },
 };
 
-// Contact API endpoints
 export const contactApi = {
     getAll: async (params?: { search?: string; category?: string }, token?: string) => {
         const searchParams = new URLSearchParams();
@@ -368,7 +354,6 @@ export const contactApi = {
     },
 };
 
-// Leave Requests API endpoints
 export const leaveRequestApi = {
     getAll: async (params?: { status?: string; startDate?: string; endDate?: string; pending?: boolean, supervisorId?: string }) => {
         const searchParams = new URLSearchParams();
@@ -378,11 +363,8 @@ export const leaveRequestApi = {
         if (params?.pending) searchParams.set('pending', 'true');
         if (params?.supervisorId) searchParams.set('supervisorId', params.supervisorId);
 
-        console.log("this is the search params", searchParams);
-
         const queryString = searchParams.toString();
         const endpoint = queryString ? `/time-off/requests?${queryString}` : '/time-off/requests';
-        // console.log("endpoint", endpoint);
 
         return apiRequest<any[]>(endpoint, {
             method: 'GET',
@@ -435,10 +417,9 @@ export const leaveRequestApi = {
     },
 };
 
-// Leave Types API endpoints
 export const leaveTypeApi = {
     getAll: async (token?: string) => {
-        return apiRequest<any[]>('/time-off/leave-types', {
+        return apiRequest<any[]>(`/time-off/leave-types`, {
             method: 'GET',
             token,
         });
@@ -452,10 +433,9 @@ export const leaveTypeApi = {
     },
 };
 
-// Leave Balances API endpoints
 export const leaveBalanceApi = {
     getMy: async (token?: string) => {
-        return apiRequest<any[]>('/time-off/balances/me', {
+        return apiRequest<any[]>(`/time-off/balances/me`, {
             method: 'GET',
             token,
         });
@@ -469,7 +449,6 @@ export const leaveBalanceApi = {
     },
 };
 
-// Notification API endpoints
 export const notificationApi = {
     getAll: async (params?: { page?: number; limit?: number; unreadOnly?: boolean; type?: string }) => {
         const searchParams = new URLSearchParams();
@@ -496,13 +475,13 @@ export const notificationApi = {
     },
 
     getUnreadCount: async () => {
-        return apiRequest<{ unreadCount: number }>('/notifications/unread-count', {
+        return apiRequest<{ unreadCount: number }>(`/notifications/unread-count`, {
             method: 'GET',
         });
     },
 
     markAsRead: async (data: { notificationIds?: string[]; markAll?: boolean }) => {
-        return apiRequest<{ success: boolean; modifiedCount: number; message: string }>('/notifications/mark-read', {
+        return apiRequest<{ success: boolean; modifiedCount: number; message: string }>(`/notifications/mark-read`, {
             method: 'POST',
             body: data,
         });
@@ -515,7 +494,6 @@ export const notificationApi = {
     },
 };
 
-// User management API
 export const userApi = {
     getByEmployeeId: async (employeeId: string, token?: string) => {
         return apiRequest<any>(`/users/employee/${employeeId}`, {
@@ -541,7 +519,6 @@ export const userApi = {
     },
 };
 
-// Generic API client for other endpoints
 export const api = {
     get: <T>(endpoint: string, token?: string) =>
         apiRequest<T>(endpoint, { method: 'GET', token }),
