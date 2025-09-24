@@ -30,7 +30,7 @@ export const DeleteContactConfirmationDialog: React.FC<
   const deleteContactMutation = useMutation({
     mutationFn: () =>
       contactApi.delete(
-        contact?._id || contact?.id || "",
+        contact?._id || "", // changed from contact?.id to contact?._id
         localStorage.getItem("access_token") || undefined
       ),
     onSuccess: () => {
