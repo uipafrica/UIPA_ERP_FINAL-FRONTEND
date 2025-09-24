@@ -95,7 +95,7 @@ const navItems: NavItem[] = [
     roles: ["employee", "approver", "admin"],
   },
   {
-    title: "Documents",
+    title: "Issue Drawings",
     href: "/documents",
     icon: FileText,
     roles: ["employee", "approver", "admin"],
