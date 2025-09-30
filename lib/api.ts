@@ -419,6 +419,14 @@ export const leaveRequestApi = {
             token,
         });
     },
+
+    close: async (id: string, closedOn: string, token?: string) => {
+        return apiRequest<any>(`/time-off/requests/${id}/close`, {
+            method: 'POST',
+            body: { closedOn },
+            token,
+        });
+    },
 };
 
 export const leaveTypeApi = {

@@ -39,9 +39,20 @@ export const SupervisorSelector: React.FC<SupervisorSelectorProps> = ({
     error,
   } = useQuery({
     queryKey: ["eligibleSupervisors"],
-    queryFn: () => employeeApi.getEligibleSupervisors(),
+    queryFn: async () => {
+      try {
+        return await employeeApi.getEligibleSupervisors();
+      } catch (e: any) {
+        if (e?.status === 404) {
+          return [] as Supervisor[];
+        }
+        throw e;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  console.log(supervisors);
 
   const selectedSupervisor = supervisors.find(
     (s: Supervisor) => s.id === value

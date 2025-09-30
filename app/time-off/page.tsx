@@ -53,6 +53,8 @@ const getStatusIcon = (status: LeaveStatus) => {
       return <XCircle className="h-4 w-4 text-red-500" />;
     case "cancelled":
       return <XCircle className="h-4 w-4 text-gray-500" />;
+    case "reported":
+      return <AlertCircle className="h-4 w-4 text-amber-500" />;
     default:
       return <Clock className="h-4 w-4 text-gray-500" />;
   }
@@ -70,6 +72,8 @@ const getStatusColor = (status: LeaveStatus): string => {
       return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
     case "cancelled":
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+    case "reported":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
   }
@@ -221,7 +225,6 @@ export default function TimeOffPage() {
   console.log("filteredLeaveRequests", filteredLeaveRequests);
 
   // Available status options
-  // "submitted" | "approved_lvl1" | "approved_final" | "rejected" | "cancelled";
   const statusOptions: (LeaveStatus | "all")[] = [
     "all",
     "submitted",
@@ -229,6 +232,7 @@ export default function TimeOffPage() {
     "approved_final",
     "rejected",
     "cancelled",
+    "reported",
   ];
 
   const getStatusLabel = (status: LeaveStatus | "all"): string => {
@@ -441,18 +445,39 @@ export default function TimeOffPage() {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <div className="text-sm">
-                                  <p>{formatDate(request.startDate)}</p>
-                                  <p className="text-muted-foreground">
-                                    to {formatDate(request.endDate)}
-                                  </p>
-                                </div>
+                                {request.startDate && request.endDate ? (
+                                  <div className="text-sm">
+                                    <p>{formatDate(request.startDate)}</p>
+                                    <p className="text-muted-foreground">
+                                      to {formatDate(request.endDate)}
+                                    </p>
+                                  </div>
+                                ) : request.occurredOn ? (
+                                  <div className="text-sm">
+                                    <p>
+                                      Occurred on{" "}
+                                      {formatDate(request.occurredOn)}
+                                    </p>
+                                    {request.closedOn && (
+                                      <p className="text-muted-foreground">
+                                        Closed on {formatDate(request.closedOn)}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <span
                                   className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium  bg-primary text-white`}
                                 >
-                                  {request.totalDays}
+                                  {typeof request.totalDays === "number" &&
+                                  request.totalDays > 0
+                                    ? request.totalDays
+                                    : request.durationDays || 0}
                                 </span>
                               </TableCell>
                               <TableCell>

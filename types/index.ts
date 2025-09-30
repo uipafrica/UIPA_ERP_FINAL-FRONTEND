@@ -80,9 +80,16 @@ export interface LeaveRequest {
     id: string
     employeeId: string
     leaveTypeId: string
-    startDate: string
-    endDate: string
-    days: number
+    // Dated flow
+    startDate?: string
+    endDate?: string
+    days?: number
+    // Non-dated flow
+    occurredOn?: string
+    isOpenEnded?: boolean
+    closedOn?: string
+    reportedOn?: string
+    durationDays?: number
     reason: string
     status: LeaveStatus
     supervisorId?: string
@@ -99,7 +106,7 @@ export interface LeaveRequest {
     updatedAt: string
 }
 
-export type LeaveStatus = "submitted" | "approved_lvl1" | "approved_final" | "rejected" | "cancelled"
+export type LeaveStatus = "submitted" | "approved_lvl1" | "approved_final" | "rejected" | "cancelled" | "reported"
 
 export interface LeaveType {
     id: string
@@ -108,6 +115,13 @@ export interface LeaveType {
     maxDays: number
     carryOver: boolean
     isActive: boolean
+    // Policy flags (align with backend)
+    requiresBalance?: boolean
+    requiresDates?: boolean
+    allowFutureApplications?: boolean
+    isOpenEndedAllowed?: boolean
+    maxRetroactiveDays?: number
+    requiresAttachment?: boolean
     createdAt: string
     updatedAt: string
 }

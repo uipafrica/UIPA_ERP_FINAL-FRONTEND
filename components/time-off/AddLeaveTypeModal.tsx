@@ -26,6 +26,13 @@ interface LeaveTypeFormData {
   description: string;
   maxDays: number;
   carryOver: boolean;
+  // policy flags
+  requiresDates: boolean;
+  requiresBalance: boolean;
+  allowFutureApplications: boolean;
+  isOpenEndedAllowed: boolean;
+  maxRetroactiveDays: number;
+  requiresAttachment: boolean;
 }
 
 const initialFormData: LeaveTypeFormData = {
@@ -33,6 +40,12 @@ const initialFormData: LeaveTypeFormData = {
   description: "",
   maxDays: 0,
   carryOver: false,
+  requiresDates: true,
+  requiresBalance: true,
+  allowFutureApplications: true,
+  isOpenEndedAllowed: false,
+  maxRetroactiveDays: 0,
+  requiresAttachment: false,
 };
 
 export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
@@ -76,6 +89,13 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
       // Optional fields per backend schema (send only if needed)
       // carryOverRules, maxConsecutiveDays, eligibility
       requiresApproval: true,
+      // Policies
+      requiresDates: formData.requiresDates,
+      requiresBalance: formData.requiresBalance,
+      allowFutureApplications: formData.allowFutureApplications,
+      isOpenEndedAllowed: formData.isOpenEndedAllowed,
+      maxRetroactiveDays: Number(formData.maxRetroactiveDays) || 0,
+      requiresAttachment: formData.requiresAttachment,
     };
 
     createLeaveTypeMutation.mutate(submitData);
@@ -121,11 +141,13 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
                 onChange={(e) =>
                   handleInputChange("maxDays", parseInt(e.target.value || "0"))
                 }
-                required
                 disabled={createLeaveTypeMutation.isPending}
                 placeholder="25"
                 min="0"
               />
+              <div className="mt-1 text-xs text-muted-foreground">
+                Set to 0 for non-balance types (e.g., Sick Leave).
+              </div>
             </div>
 
             {/* carryOver kept for UI but not sent unless you add carryOverRules semantics */}
@@ -144,6 +166,128 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
                 Allow carry over to next year
               </Label>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="requiresDates"
+                  checked={formData.requiresDates}
+                  onChange={(e) =>
+                    handleInputChange("requiresDates", e.target.checked)
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  className="h-4 w-4 rounded border border-input"
+                />
+                <Label htmlFor="requiresDates" className="text-sm font-medium">
+                  Requires date range
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="requiresBalance"
+                  checked={formData.requiresBalance}
+                  onChange={(e) =>
+                    handleInputChange("requiresBalance", e.target.checked)
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  className="h-4 w-4 rounded border border-input"
+                />
+                <Label
+                  htmlFor="requiresBalance"
+                  className="text-sm font-medium"
+                >
+                  Requires leave balance
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="allowFutureApplications"
+                  checked={formData.allowFutureApplications}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "allowFutureApplications",
+                      e.target.checked
+                    )
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  className="h-4 w-4 rounded border border-input"
+                />
+                <Label
+                  htmlFor="allowFutureApplications"
+                  className="text-sm font-medium"
+                >
+                  Allow future-dated requests
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isOpenEndedAllowed"
+                  checked={formData.isOpenEndedAllowed}
+                  onChange={(e) =>
+                    handleInputChange("isOpenEndedAllowed", e.target.checked)
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  className="h-4 w-4 rounded border border-input"
+                />
+                <Label
+                  htmlFor="isOpenEndedAllowed"
+                  className="text-sm font-medium"
+                >
+                  Allow open-ended requests
+                </Label>
+              </div>
+            </div>
+
+            {!formData.requiresDates && (
+              <div>
+                <Label htmlFor="maxRetroactiveDays">Max retroactive days</Label>
+                <Input
+                  id="maxRetroactiveDays"
+                  type="number"
+                  min="0"
+                  value={formData.maxRetroactiveDays}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "maxRetroactiveDays",
+                      parseInt(e.target.value || "0")
+                    )
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  placeholder="e.g., 7"
+                />
+                <div className="mt-1 text-xs text-muted-foreground">
+                  How many days back employees can report (e.g., Sick Leave).
+                </div>
+              </div>
+            )}
+
+            {!formData.requiresDates && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="requiresAttachment"
+                  checked={formData.requiresAttachment}
+                  onChange={(e) =>
+                    handleInputChange("requiresAttachment", e.target.checked)
+                  }
+                  disabled={createLeaveTypeMutation.isPending}
+                  className="h-4 w-4 rounded border border-input"
+                />
+                <Label
+                  htmlFor="requiresAttachment"
+                  className="text-sm font-medium"
+                >
+                  Requires attachment (e.g., doctor note)
+                </Label>
+              </div>
+            )}
           </div>
 
           {createLeaveTypeMutation.error && (
