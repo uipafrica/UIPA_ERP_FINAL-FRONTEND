@@ -41,6 +41,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { AddLeaveTypeModal } from "@/components/time-off/AddLeaveTypeModal";
 import { RequestTimeOffModal } from "@/components/time-off/RequestTimeOffModal";
 
+// for github
+
 const getStatusIcon = (status: LeaveStatus) => {
   switch (status) {
     case "submitted":
