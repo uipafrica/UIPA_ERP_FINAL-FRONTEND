@@ -6,12 +6,14 @@ import { cn } from "@/lib/utils";
 interface CalendarProps {
   approvedDates?: string[];
   requestedDates?: string[];
+  reportedDates?: string[];
   className?: string;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({
   approvedDates = [],
   requestedDates = [],
+  reportedDates = [],
   className,
 }) => {
   const currentDate = new Date();
@@ -72,6 +74,15 @@ export const Calendar: React.FC<CalendarProps> = ({
     return requestedDates.some((date) => date.startsWith(dateString));
   };
 
+  const isReportedDate = (day: number | null): boolean => {
+    if (!day) return false;
+    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(
+      2,
+      "0"
+    )}-${String(day).padStart(2, "0")}`;
+    return reportedDates.some((date) => date.startsWith(dateString));
+  };
+
   return (
     <div className={cn("p-4", className)}>
       <div className="text-center mb-4">
@@ -101,6 +112,8 @@ export const Calendar: React.FC<CalendarProps> = ({
                 ? "text-transparent"
                 : isApprovedDate(date)
                 ? "bg-green-100 text-green-800 font-medium border border-green-200"
+                : isReportedDate(date)
+                ? "bg-amber-100 text-amber-800 font-medium border border-amber-200"
                 : isRequestedDate(date)
                 ? "bg-orange-100 text-orange-800 font-medium border border-orange-200"
                 : date === currentDate.getDate() &&
@@ -123,6 +136,10 @@ export const Calendar: React.FC<CalendarProps> = ({
         <div className="flex items-center space-x-2">
           <div className="h-3 w-3 bg-orange-100 border border-orange-200 rounded"></div>
           <span className="text-muted-foreground">Requested Leave</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="h-3 w-3 bg-amber-100 border border-amber-200 rounded"></div>
+          <span className="text-muted-foreground">Reported Leave</span>
         </div>
         <div className="flex items-center space-x-2">
           <div className="h-3 w-3 bg-primary rounded"></div>

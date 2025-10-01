@@ -237,3 +237,33 @@ export interface SearchFilters {
     sortOrder?: "asc" | "desc"
     [key: string]: any
 }
+
+// ---------------- Transfers Module ----------------
+export interface TransferFileMeta {
+    id: string
+    name: string
+    size: number
+}
+
+export interface TransferMeta {
+    shortCode: string
+    title: string
+    description?: string
+    expired: boolean
+    needsPassword: boolean
+    files: TransferFileMeta[]
+}
+
+export interface TransferCreateResponse {
+    id: string
+    shortCode: string
+    shareUrl: string
+    expiresAt?: string
+    files: TransferFileMeta[]
+}
+
+export interface TransferAccessResponse {
+    token: string
+    files: Array<TransferFileMeta & { url: string }>
+    downloadAllUrl?: string
+}

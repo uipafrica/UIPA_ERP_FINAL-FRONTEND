@@ -10,6 +10,7 @@ import {
   Car,
   Calendar,
   FileText,
+  SendIcon,
   ShieldCheck,
   Bot,
   X,
@@ -95,9 +96,15 @@ const navItems: NavItem[] = [
     roles: ["employee", "approver", "admin"],
   },
   {
-    title: "Issue Drawings",
+    title: "Reference App",
     href: "/documents",
     icon: FileText,
+    roles: ["employee", "approver", "admin"],
+  },
+  {
+    title: "Transfers",
+    href: "/transfers",
+    icon: SendIcon,
     roles: ["employee", "approver", "admin"],
   },
 ];

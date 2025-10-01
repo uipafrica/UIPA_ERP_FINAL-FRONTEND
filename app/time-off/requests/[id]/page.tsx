@@ -253,7 +253,7 @@ export default function LeaveRequestDetailPage() {
   }
 
   // Generate dates array for calendar
-  const leaveDates = [];
+  const leaveDates: string[] = [];
   if (leaveRequest.startDate && leaveRequest.endDate) {
     const start = new Date(leaveRequest.startDate);
     const end = new Date(leaveRequest.endDate);
@@ -261,6 +261,26 @@ export default function LeaveRequestDetailPage() {
       leaveDates.push(d.toISOString().split("T")[0]);
     }
   }
+
+  // Reported (non-dated) leaves: occurredOn + optional durationDays
+  const reportedDates: string[] = (() => {
+    if (leaveRequest.status !== "reported") return [];
+    const occurred = leaveRequest.occurredOn
+      ? new Date(leaveRequest.occurredOn)
+      : undefined;
+    if (!occurred) return [];
+    const duration = Math.max(
+      1,
+      Number((leaveRequest as any).durationDays) || 1
+    );
+    const dates: string[] = [];
+    for (let i = 0; i < duration; i++) {
+      const d = new Date(occurred);
+      d.setDate(d.getDate() + i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  })();
 
   const employeeName =
     leaveRequest.employeeId?.name ||
@@ -490,6 +510,7 @@ export default function LeaveRequestDetailPage() {
                   leaveRequest.status === "approved_final" ? leaveDates : []
                 }
                 requestedDates={leaveDates}
+                reportedDates={reportedDates}
               />
             </CardContent>
           </Card>

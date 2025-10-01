@@ -6,7 +6,7 @@ const publicRoutes = ["/login"]
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-    const isPublicRoute = publicRoutes.includes(pathname)
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith("/t/")
 
     // Get token from localStorage is not available in middleware, so we'll check cookies
     // The AuthContext will handle localStorage tokens on the client side

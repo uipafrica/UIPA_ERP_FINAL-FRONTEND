@@ -358,6 +358,58 @@ export const contactApi = {
     },
 };
 
+// ---------------- Transfers API ----------------
+export const transferApi = {
+    create: async (data: {
+        title: string;
+        description?: string;
+        password?: string;
+        expiresAt?: string;
+        maxDownloads?: number;
+        files: File[];
+        paths?: string[];
+    }) => {
+        const formData = new FormData();
+        formData.append('title', data.title);
+        if (data.description) formData.append('description', data.description);
+        if (data.password) formData.append('password', data.password);
+        if (data.expiresAt) formData.append('expiresAt', data.expiresAt);
+        if (typeof data.maxDownloads === 'number') formData.append('maxDownloads', String(data.maxDownloads));
+        for (const f of data.files) formData.append('files', f);
+        if (data.paths && data.paths.length) for (const p of data.paths) formData.append('paths', p);
+
+        const response = await fetch(`${API_BASE_URL}/api/transfers`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new ApiError(errorData.error || 'Create transfer failed', response.status, errorData);
+        }
+        return response.json();
+    },
+
+    listMy: async () => {
+        return apiRequest(`/transfers`, { method: 'GET' });
+    },
+
+    resolve: async (shortCode: string) => {
+        return apiRequest(`/transfers/${shortCode}/resolve`, { method: 'GET' });
+    },
+
+    requestAccess: async (shortCode: string, password?: string) => {
+        return apiRequest(`/transfers/${shortCode}/access`, {
+            method: 'POST',
+            body: password ? { password } : {},
+        });
+    },
+
+    delete: async (id: string) => {
+        return apiRequest(`/transfers/${id}`, { method: 'DELETE' });
+    },
+};
+
 export const leaveRequestApi = {
     getAll: async (params?: { status?: string; startDate?: string; endDate?: string; pending?: boolean, supervisorId?: string }) => {
         const searchParams = new URLSearchParams();

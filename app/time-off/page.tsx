@@ -775,6 +775,26 @@ export default function TimeOffPage() {
                         }
                         return dates;
                       })}
+                    reportedDates={leaveRequests
+                      .filter((req: any) => req.status === "reported")
+                      .flatMap((req: any) => {
+                        // Non-dated leaves use occurredOn + optional durationDays
+                        const occurredOn = req.occurredOn
+                          ? new Date(req.occurredOn)
+                          : undefined;
+                        if (!occurredOn) return [] as string[];
+                        const duration = Math.max(
+                          1,
+                          Number(req.durationDays) || 1
+                        );
+                        const dates: string[] = [];
+                        for (let i = 0; i < duration; i++) {
+                          const d = new Date(occurredOn);
+                          d.setDate(d.getDate() + i);
+                          dates.push(d.toISOString().split("T")[0]);
+                        }
+                        return dates;
+                      })}
                   />
                 </CardContent>
               </Card>
