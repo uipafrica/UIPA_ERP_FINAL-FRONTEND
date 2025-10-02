@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Document, DocumentCategory, User as UserType } from "@/types";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { DocumentUploadForm } from "@/components/documents/DocumentUploadForm";
 
 // Mock document data
 const mockDocuments: (Document & { uploader: UserType })[] = [
@@ -266,6 +267,7 @@ export default function DocumentsPage() {
     DocumentCategory | "all"
   >("all");
   const [documents] = useState(mockDocuments);
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   const filteredDocuments = documents.filter((document) => {
     const matchesSearch =
@@ -304,11 +306,22 @@ export default function DocumentsPage() {
               Manage and access your document library
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowUploadForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Upload Document
           </Button>
         </div>
+
+        {/* Upload Form */}
+        {showUploadForm && (
+          <DocumentUploadForm
+            onUploadComplete={(document) => {
+              console.log("Document uploaded:", document);
+              setShowUploadForm(false);
+            }}
+            onCancel={() => setShowUploadForm(false)}
+          />
+        )}
 
         <Card>
           <CardHeader>

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { transferApi } from "@/lib/api";
+import { Copy, Check } from "lucide-react";
 
 export default function PublicTransferPage() {
   const params = useParams();
@@ -23,6 +24,7 @@ export default function PublicTransferPage() {
   const [password, setPassword] = React.useState("");
   const [access, setAccess] = React.useState<any | null>(null);
   const [accessError, setAccessError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -54,6 +56,16 @@ export default function PublicTransferPage() {
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {loading ? (
@@ -62,11 +74,35 @@ export default function PublicTransferPage() {
         <p className="text-red-600">{error}</p>
       ) : meta ? (
         <>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{meta.title}</h1>
-            {meta.description ? (
-              <p className="text-muted-foreground">{meta.description}</p>
-            ) : null}
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {meta.title}
+              </h1>
+              {meta.description ? (
+                <p className="text-muted-foreground">{meta.description}</p>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLink}
+                className="flex items-center gap-2"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {meta.expired ? (

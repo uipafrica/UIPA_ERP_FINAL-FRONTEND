@@ -368,7 +368,7 @@ export const transferApi = {
         maxDownloads?: number;
         files: File[];
         paths?: string[];
-    }) => {
+    }, onProgress?: (progress: number) => void) => {
         const formData = new FormData();
         formData.append('title', data.title);
         if (data.description) formData.append('description', data.description);
@@ -378,16 +378,46 @@ export const transferApi = {
         for (const f of data.files) formData.append('files', f);
         if (data.paths && data.paths.length) for (const p of data.paths) formData.append('paths', p);
 
-        const response = await fetch(`${API_BASE_URL}/api/transfers`, {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable && onProgress) {
+                    const progress = Math.round((event.loaded / event.total) * 100);
+                    onProgress(progress);
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (error) {
+                        reject(new ApiError('Invalid response format', xhr.status));
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        reject(new ApiError(errorData.error || 'Create transfer failed', xhr.status, errorData));
+                    } catch {
+                        reject(new ApiError('Create transfer failed', xhr.status));
+                    }
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                reject(new ApiError('Network error', 0));
+            });
+
+            xhr.addEventListener('abort', () => {
+                reject(new ApiError('Upload cancelled', 0));
+            });
+
+            xhr.open('POST', `${API_BASE_URL}/api/transfers`);
+            xhr.withCredentials = true;
+            xhr.send(formData);
         });
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new ApiError(errorData.error || 'Create transfer failed', response.status, errorData);
-        }
-        return response.json();
     },
 
     listMy: async () => {

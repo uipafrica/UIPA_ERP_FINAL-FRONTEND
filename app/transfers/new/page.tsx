@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { transferApi } from "@/lib/api";
 import { Folder, FilePlus2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useUploadProgress } from "@/lib/hooks/useUploadProgress";
+import { UploadProgress } from "@/components/upload/UploadProgress";
 
 export default function NewTransferPage() {
   const router = useRouter();
@@ -32,6 +34,18 @@ export default function NewTransferPage() {
   );
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+  const uploadXhrRef = React.useRef<XMLHttpRequest | null>(null);
+
+  const {
+    uploadState,
+    uploadFiles,
+    startUpload,
+    updateFileProgress,
+    completeFile,
+    setFileError,
+    completeUpload,
+    resetUpload,
+  } = useUploadProgress();
   React.useEffect(() => {
     if (folderInputRef.current) {
       (folderInputRef.current as any).setAttribute("webkitdirectory", "");
@@ -57,24 +71,37 @@ export default function NewTransferPage() {
     }
     try {
       setIsSubmitting(true);
-      const res = await transferApi.create({
-        title,
-        description: description || undefined,
-        password: password || undefined,
-        expiresAt: expiresAt || undefined,
-        maxDownloads: maxDownloads ? Number(maxDownloads) : undefined,
-        files,
-        paths,
-      });
+
+      // Start upload progress tracking
+      startUpload(files);
+
+      const res = await transferApi.create(
+        {
+          title,
+          description: description || undefined,
+          password: password || undefined,
+          expiresAt: expiresAt || undefined,
+          maxDownloads: maxDownloads ? Number(maxDownloads) : undefined,
+          files,
+          paths,
+        },
+        (progress) => {
+          // Update overall progress
+          updateFileProgress(0, progress);
+        }
+      );
+
+      // Complete upload
+      completeUpload();
 
       // Show success toast
       toast.success("Transfer created successfully!", {
-        description: `Share code: ${res.shortCode}`,
+        description: `Share code: ${(res as any).shortCode}`,
       });
 
       // Copy share URL to clipboard
-      if (res.shareUrl) {
-        await navigator.clipboard.writeText(res.shareUrl);
+      if ((res as any).shareUrl) {
+        await navigator.clipboard.writeText((res as any).shareUrl);
         toast.info("Share link copied to clipboard!");
       }
 
@@ -84,12 +111,22 @@ export default function NewTransferPage() {
       }, 1500);
     } catch (err: any) {
       console.error(err);
+      setFileError(0, err?.message || "Upload failed");
       toast.error("Failed to create transfer", {
         description: err?.message || "Please try again",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCancelUpload = () => {
+    if (uploadXhrRef.current) {
+      uploadXhrRef.current.abort();
+    }
+    resetUpload();
+    setIsSubmitting(false);
+    toast.info("Upload cancelled");
   };
 
   return (
@@ -117,6 +154,17 @@ export default function NewTransferPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Upload Progress */}
+            <UploadProgress
+              isUploading={uploadState.isUploading}
+              progress={uploadState.progress}
+              currentFile={uploadState.currentFile}
+              totalFiles={uploadState.totalFiles}
+              completedFiles={uploadState.completedFiles}
+              error={uploadState.error}
+              uploadFiles={uploadFiles}
+              onCancel={handleCancelUpload}
+            />
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Upload</Label>
