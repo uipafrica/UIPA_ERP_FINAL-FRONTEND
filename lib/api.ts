@@ -613,6 +613,259 @@ export const userApi = {
     },
 };
 
+export const vehicleApi = {
+    getAll: async (params?: { search?: string; status?: string; assignedTo?: string; project?: string }, token?: string) => {
+        const searchParams = new URLSearchParams();
+        if (params?.search) searchParams.set('search', params.search);
+        if (params?.status) searchParams.set('status', params.status);
+        if (params?.assignedTo) searchParams.set('assignedTo', params.assignedTo);
+        if (params?.project) searchParams.set('project', params.project);
+
+        const queryString = searchParams.toString();
+        const endpoint = queryString ? `/vehicles?${queryString}` : '/vehicles';
+
+        return apiRequest<{ vehicles: any[] }>(endpoint, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    getById: async (id: string, token?: string) => {
+        return apiRequest<{ vehicle: any }>(`/vehicles/${id}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    create: async (vehicleData: any, token?: string) => {
+        return apiRequest<{ vehicle: any }>('/vehicles', {
+            method: 'POST',
+            body: vehicleData,
+            token,
+        });
+    },
+
+    update: async (id: string, vehicleData: any, token?: string) => {
+        return apiRequest<{ vehicle: any }>(`/vehicles/${id}`, {
+            method: 'PUT',
+            body: vehicleData,
+            token,
+        });
+    },
+
+    delete: async (id: string, token?: string) => {
+        return apiRequest<any>(`/vehicles/${id}`, {
+            method: 'DELETE',
+            token,
+        });
+    },
+
+    getAssignmentStatus: async (token?: string) => {
+        return apiRequest<{
+            assignedVehicles: any[];
+            unassignedVehicles: any[];
+            statusCounts: {
+                active: number;
+                inMaintenance: number;
+                retired: number;
+            };
+        }>('/vehicles/assignment-status', {
+            method: 'GET',
+            token,
+        });
+    },
+
+    uploadDocument: async (vehicleId: string, file: File, documentType?: string, documentName?: string, token?: string) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        if (documentType) formData.append('documentType', documentType);
+        if (documentName) formData.append('documentName', documentName);
+
+        const response = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/documents`, {
+            method: 'POST',
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+            },
+            body: formData,
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new ApiError(
+                errorData.error || 'Upload failed',
+                response.status,
+                errorData
+            );
+        }
+
+        return response.json();
+    },
+
+    deleteDocument: async (vehicleId: string, documentId: string, token?: string) => {
+        return apiRequest<any>(`/vehicles/${vehicleId}/documents/${documentId}`, {
+            method: 'DELETE',
+            token,
+        });
+    },
+
+    addServiceRecord: async (vehicleId: string, serviceData: { serviceDate: string; notes?: string }, token?: string) => {
+        return apiRequest<any>(`/vehicles/${vehicleId}/service`, {
+            method: 'POST',
+            body: serviceData,
+            token,
+        });
+    },
+
+    updateStatus: async (vehicleId: string, status: 'active' | 'in maintenance' | 'retired', token?: string) => {
+        return apiRequest<any>(`/vehicles/${vehicleId}/status`, {
+            method: 'PUT',
+            body: { status },
+            token,
+        });
+    },
+};
+
+// QMS API functions
+export const qmsApi = {
+    // Dashboard and Overview
+    getDashboard: async (token?: string) => {
+        return apiRequest<any>('/qms/dashboard', {
+            method: 'GET',
+            token,
+        });
+    },
+
+    getStatistics: async (params?: { startDate?: string; endDate?: string; department?: string }, token?: string) => {
+        const queryParams = new URLSearchParams();
+        if (params?.startDate) queryParams.append('startDate', params.startDate);
+        if (params?.endDate) queryParams.append('endDate', params.endDate);
+        if (params?.department) queryParams.append('department', params.department);
+
+        return apiRequest<any>(`/qms/statistics?${queryParams}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    searchQMS: async (query: string, modules?: string[], limit?: number, token?: string) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append('query', query);
+        if (modules) queryParams.append('modules', modules.join(','));
+        if (limit) queryParams.append('limit', limit.toString());
+
+        return apiRequest<any>(`/qms/search?${queryParams}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    getUserTasks: async (token?: string) => {
+        return apiRequest<any>('/qms/tasks', {
+            method: 'GET',
+            token,
+        });
+    },
+};
+
+// QMS Document API functions
+export const qmsDocumentApi = {
+    getAll: async (params?: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        documentType?: string;
+        department?: string;
+        search?: string;
+        sortBy?: string;
+        sortOrder?: string;
+    }, token?: string) => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.status) queryParams.append('status', params.status);
+        if (params?.documentType) queryParams.append('documentType', params.documentType);
+        if (params?.department) queryParams.append('department', params.department);
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+        if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+        return apiRequest<any>(`/qms/documents?${queryParams}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    getById: async (id: string, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}`, {
+            method: 'GET',
+            token,
+        });
+    },
+
+    create: async (documentData: FormData, token?: string) => {
+        return apiRequest<any>('/qms/documents', {
+            method: 'POST',
+            body: documentData,
+            token,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+
+    update: async (id: string, documentData: FormData, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}`, {
+            method: 'PUT',
+            body: documentData,
+            token,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+
+    submitForReview: async (id: string, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}/submit-for-review`, {
+            method: 'POST',
+            token,
+        });
+    },
+
+    approve: async (id: string, approvalComments?: string, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}/approve`, {
+            method: 'POST',
+            body: { approvalComments },
+            token,
+        });
+    },
+
+    obsolete: async (id: string, obsoleteReason?: string, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}/obsolete`, {
+            method: 'POST',
+            body: { obsoleteReason },
+            token,
+        });
+    },
+
+    delete: async (id: string, token?: string) => {
+        return apiRequest<any>(`/qms/documents/${id}`, {
+            method: 'DELETE',
+            token,
+        });
+    },
+
+    getDueForReview: async (days?: number, token?: string) => {
+        const queryParams = new URLSearchParams();
+        if (days) queryParams.append('days', days.toString());
+
+        return apiRequest<any>(`/qms/documents/due-for-review?${queryParams}`, {
+            method: 'GET',
+            token,
+        });
+    },
+};
+
 export const api = {
     get: <T>(endpoint: string, token?: string) =>
         apiRequest<T>(endpoint, { method: 'GET', token }),

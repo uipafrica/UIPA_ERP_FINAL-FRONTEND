@@ -95,12 +95,12 @@ const navItems: NavItem[] = [
     icon: Calendar,
     roles: ["employee", "approver", "admin"],
   },
-  {
-    title: "Reference App",
-    href: "/documents",
-    icon: FileText,
-    roles: ["employee", "approver", "admin"],
-  },
+  // {
+  //   title: "Reference App",
+  //   href: "/documents",
+  //   icon: FileText,
+  //   roles: ["employee", "approver", "admin"],
+  // },
   {
     title: "Transfers",
     href: "/transfers",

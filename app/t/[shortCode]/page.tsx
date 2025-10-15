@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { transferApi } from "@/lib/api";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Download } from "lucide-react";
+import QRCode from "qrcode";
 
 export default function PublicTransferPage() {
   const params = useParams();
@@ -66,6 +67,39 @@ export default function PublicTransferPage() {
     }
   };
 
+  const handleDownloadQR = async () => {
+    if (!meta?.title) return;
+
+    try {
+      const currentUrl = window.location.href;
+
+      // Generate QR code as data URL directly
+      const qrDataUrl = await QRCode.toDataURL(currentUrl, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      });
+
+      // Create download link
+      const link = document.createElement("a");
+      const sanitizedTitle = meta.title
+        .replace(/[^a-z0-9]/gi, "-")
+        .toLowerCase();
+      link.download = `${sanitizedTitle}-qr.png`;
+      link.href = qrDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log("QR code downloaded successfully");
+    } catch (err) {
+      console.error("Failed to download QR code:", err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {loading ? (
@@ -101,6 +135,15 @@ export default function PublicTransferPage() {
                     Copy Link
                   </>
                 )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadQR}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download QR
               </Button>
             </div>
           </div>
