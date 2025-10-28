@@ -44,7 +44,7 @@ const initialFormData: LeaveTypeFormData = {
   requiresBalance: true,
   allowFutureApplications: true,
   isOpenEndedAllowed: false,
-  maxRetroactiveDays: 0,
+  maxRetroactiveDays: 2,
   requiresAttachment: false,
 };
 
@@ -94,7 +94,7 @@ export const AddLeaveTypeModal: React.FC<AddLeaveTypeModalProps> = ({
       requiresBalance: formData.requiresBalance,
       allowFutureApplications: formData.allowFutureApplications,
       isOpenEndedAllowed: formData.isOpenEndedAllowed,
-      maxRetroactiveDays: Number(formData.maxRetroactiveDays) || 0,
+      maxRetroactiveDays: Number(formData.maxRetroactiveDays) || 2,
       requiresAttachment: formData.requiresAttachment,
     };
 
