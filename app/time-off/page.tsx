@@ -32,6 +32,7 @@ import {
   Loader2,
   User,
   Search,
+  Trash,
 } from "lucide-react";
 import { LeaveRequest, LeaveStatus, Employee, LeaveType } from "@/types";
 import { formatDate } from "@/lib/utils";
@@ -192,6 +193,21 @@ export default function TimeOffPage() {
 
   const handleFilterToggle = () => {
     setShowMyRequestsOnly(!showMyRequestsOnly);
+  };
+
+  const handleDeleteLeaveType = (id: string) => {
+    console.log("delete leave` type", id);
+    leaveTypeApi
+      .delete(id, localStorage.getItem("access_token") || undefined)
+      .then((res) => {
+        console.log("delete leave type", res);
+      })
+      .catch((err) => {
+        console.error("Failed to delete leave type:", err);
+      })
+      .finally(() => {
+        refetchTypes();
+      });
   };
 
   const canViewAllRequests =
@@ -731,6 +747,18 @@ export default function TimeOffPage() {
                                     {formatDate(type.createdAt)}
                                   </span>
                                 </TableCell>
+                                <TableCell>
+                                  <Button
+                                    onClick={() =>
+                                      handleDeleteLeaveType(type._id as string)
+                                    }
+                                    variant="destructive"
+                                    size="sm"
+                                  >
+                                    <Trash className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </Button>
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -748,120 +776,115 @@ export default function TimeOffPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Leave Calendar */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Leave Calendar</CardTitle>
-                  <CardDescription>
-                    View approved leave days for this month
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Calendar
-                    approvedDates={leaveRequests
-                      .filter((req: any) => req.status === "approved_final")
-                      .flatMap((req: any) => {
-                        const start = new Date(req.startDate);
-                        const end = new Date(req.endDate);
-                        const dates = [];
-                        for (
-                          let d = new Date(start);
-                          d <= end;
-                          d.setDate(d.getDate() + 1)
-                        ) {
-                          dates.push(d.toISOString().split("T")[0]);
-                        }
-                        return dates;
-                      })}
-                    reportedDates={leaveRequests
-                      .filter((req: any) => req.status === "reported")
-                      .flatMap((req: any) => {
-                        // Non-dated leaves use occurredOn + optional durationDays
-                        const occurredOn = req.occurredOn
-                          ? new Date(req.occurredOn)
-                          : undefined;
-                        if (!occurredOn) return [] as string[];
-                        const duration = Math.max(
-                          1,
-                          Number(req.durationDays) || 1
-                        );
-                        const dates: string[] = [];
-                        for (let i = 0; i < duration; i++) {
-                          const d = new Date(occurredOn);
-                          d.setDate(d.getDate() + i);
-                          dates.push(d.toISOString().split("T")[0]);
-                        }
-                        return dates;
-                      })}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
-                  <CardDescription>Overview of leave requests</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        Total Requests
-                      </span>
-                      <span className="text-2xl font-bold">
-                        {leaveRequests.length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Pending</span>
-                      <span className="text-xl font-semibold text-orange-600">
-                        {
-                          leaveRequests.filter(
-                            (req: any) => req.status === "submitted"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Approved</span>
-                      <span className="text-xl font-semibold text-green-600">
-                        {
-                          leaveRequests.filter(
-                            (req: any) => req.status === "approved_final"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Rejected</span>
-                      <span className="text-xl font-semibold text-red-600">
-                        {
-                          leaveRequests.filter(
-                            (req: any) => req.status === "rejected"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         )}
 
-        {/* Modals */}
-        <RequestTimeOffModal
-          open={showRequestTimeOffModal}
-          onOpenChange={setShowRequestTimeOffModal}
-        />
+        {/* Leave Calendar */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Leave Calendar</CardTitle>
+              <CardDescription>
+                View approved leave days for this month
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                approvedDates={leaveRequests
+                  .filter((req: any) => req.status === "approved_final")
+                  .flatMap((req: any) => {
+                    const start = new Date(req.startDate);
+                    const end = new Date(req.endDate);
+                    const dates = [];
+                    for (
+                      let d = new Date(start);
+                      d <= end;
+                      d.setDate(d.getDate() + 1)
+                    ) {
+                      dates.push(d.toISOString().split("T")[0]);
+                    }
+                    return dates;
+                  })}
+                reportedDates={leaveRequests
+                  .filter((req: any) => req.status === "reported")
+                  .flatMap((req: any) => {
+                    // Non-dated leaves use occurredOn + optional durationDays
+                    const occurredOn = req.occurredOn
+                      ? new Date(req.occurredOn)
+                      : undefined;
+                    if (!occurredOn) return [] as string[];
+                    const duration = Math.max(1, Number(req.durationDays) || 1);
+                    const dates: string[] = [];
+                    for (let i = 0; i < duration; i++) {
+                      const d = new Date(occurredOn);
+                      d.setDate(d.getDate() + i);
+                      dates.push(d.toISOString().split("T")[0]);
+                    }
+                    return dates;
+                  })}
+              />
+            </CardContent>
+          </Card>
 
-        <AddLeaveTypeModal
-          open={showAddLeaveTypeModal}
-          onOpenChange={setShowAddLeaveTypeModal}
-        />
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Stats</CardTitle>
+              <CardDescription>Overview of leave requests</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Total Requests</span>
+                  <span className="text-2xl font-bold">
+                    {leaveRequests.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Pending</span>
+                  <span className="text-xl font-semibold text-orange-600">
+                    {
+                      leaveRequests.filter(
+                        (req: any) => req.status === "submitted"
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Approved</span>
+                  <span className="text-xl font-semibold text-green-600">
+                    {
+                      leaveRequests.filter(
+                        (req: any) => req.status === "approved_final"
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Rejected</span>
+                  <span className="text-xl font-semibold text-red-600">
+                    {
+                      leaveRequests.filter(
+                        (req: any) => req.status === "rejected"
+                      ).length
+                    }
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Modals */}
+      <RequestTimeOffModal
+        open={showRequestTimeOffModal}
+        onOpenChange={setShowRequestTimeOffModal}
+      />
+
+      <AddLeaveTypeModal
+        open={showAddLeaveTypeModal}
+        onOpenChange={setShowAddLeaveTypeModal}
+      />
     </AppShell>
   );
 }

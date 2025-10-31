@@ -525,6 +525,12 @@ export const leaveTypeApi = {
             token,
         });
     },
+    delete: async (id: string, token?: string) => {
+        return apiRequest<any>(`/time-off/leave-types/${id}`, {
+            method: 'DELETE',
+            token,
+        });
+    },
 };
 
 export const leaveBalanceApi = {
